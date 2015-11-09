@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+</head>
+<body role="document">
+
+<div class="container" role="main" id="map" style="margin: 30px; width: 80%; position: absolute; height: 80%">
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
+<script src="./datamaps.world.min.js"></script>
+<script src="./world_gdp.js"></script>
+<script src="./stocks.js"></script>
+
+<script>
+
+    function getPIB (country, year) {
+        if (parseInt(year) < 1990) return '..'
+        if (typeof country[year] === 'number') return country[year] / 1000000
+        else return getPIB(country, parseInt(year) - 1)
+    }
+    
+    function getData (stock, year) {
+        var revenues = window.stocks[stock][year]
+        
+        var data = {}
+        
+        window.pib.forEach(function (item) {
+            data[item.Code.toUpperCase()] = {
+                fillKey: (getPIB(item, year) < revenues) ? 'LOWER' : (getPIB(item, year) > revenues) ? 'HIGHER' : 'UNKNOWN',
+                pib: getPIB(item, year)
+            }
+        })
+        
+        console.log(data)
+        return data
+    }
+    
+    new Datamap({
+        element: document.getElementById('map'),
+        projection: 'mercator', // big world map
+        fills: {
+            LOWER: 'red',
+            HIGHER: 'blue',
+            UNKNOWN: 'gray',
+            defaultFill: 'gray'
+        },
+        data: getData('apple', '2015'),
+        geographyConfig: {
+            borderColor: '#DEDEDE',
+            highlightBorderWidth: 2,
+            // don't change color on mouse hover
+            highlightFillColor: function(geo) {
+                return geo['fillColor'] || '#F5F5F5';
+            },
+            // only change border
+            highlightBorderColor: '#B7B7B7',
+            // show desired information in tooltip
+            popupTemplate: function(geo, data) {
+                // don't show tooltip if country don't present in dataset
+                if (!data) { return ; }
+                // tooltip content
+                return ['<div class="hoverinfo">',
+                    '<strong>', geo.properties.name, '</strong>',
+                    '<br>Count: <strong>', data.pib, '</strong>',
+                    '</div>'].join('');
+            }
+        }
+    });
+    
+</script>
+
+</body>
+</html>
